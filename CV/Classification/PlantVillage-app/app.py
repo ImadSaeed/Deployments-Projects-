@@ -1,4 +1,3 @@
-```python
 """
 PlantVillage Disease Classifier - Streamlit App
 Uses Tiny NN trained on EfficientNetV2B0 features
