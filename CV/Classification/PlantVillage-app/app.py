@@ -179,4 +179,3 @@ st.markdown("""
         </small>
     </div>
     """, unsafe_allow_html=True)
-```
