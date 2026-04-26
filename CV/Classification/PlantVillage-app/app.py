@@ -1,3 +1,4 @@
+```python
 """
 PlantVillage Disease Classifier - Streamlit App
 Uses Tiny NN trained on EfficientNetV2B0 features
@@ -8,13 +9,20 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import cv2
+import os
+
+# ============================================
+# FIX: Get absolute path to model file
+# ============================================
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(SCRIPT_DIR, "tiny_nn_final.h5")
 
 # ============================================
 # PAGE CONFIGURATION
 # ============================================
 st.set_page_config(
     page_title="Plant Disease Classifier",
-    page_icon=":herb:",
+    page_icon="\U0001F33F",  # Unicode for Herb
     layout="wide"
 )
 
@@ -33,8 +41,8 @@ def load_models():
     )
     feature_extractor.trainable = False
     
-    # Load your trained Tiny NN model (trained on 1280-dim features)
-    tiny_nn = tf.keras.models.load_model("tiny_nn_final.h5")
+    # Load your trained Tiny NN model using absolute path
+    tiny_nn = tf.keras.models.load_model(MODEL_PATH)
     
     return feature_extractor, tiny_nn
 
@@ -96,9 +104,9 @@ def preprocess_image(uploaded_file, img_size=224):
 # ============================================
 # MAIN APP UI
 # ============================================
-st.title(":herb: Plant Disease Classification")
+st.title("\U0001F33F Plant Disease Classification")
 st.markdown("""
-    **99.77% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
+    **98% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
     
     Upload a leaf image to identify the plant disease or confirm it's healthy.
 """)
@@ -108,7 +116,7 @@ st.divider()
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader(" :leaves: Upload Leaf Image")
+    st.subheader("\U0001F4E4 Upload Leaf Image")
     
     uploaded_file = st.file_uploader(
         "Choose an image...",
@@ -121,7 +129,7 @@ with col1:
         st.image(image, caption="Uploaded Leaf", use_container_width=True)
 
 with col2:
-    st.subheader(" :wilted_flower: Diagnosis Result")
+    st.subheader("\U0001F52C Diagnosis Result")
     
     if uploaded_file is not None:
         with st.spinner("Analyzing leaf image..."):
@@ -143,17 +151,17 @@ with col2:
         
         # Display results
         if confidence > 80:
-            st.success(f"### :dart: {predicted_class}")
+            st.success(f"### \U0001F3AF {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         elif confidence > 60:
-            st.warning(f"### :warning: {predicted_class}")
+            st.warning(f"### \U000026A0 {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         else:
-            st.error("### :x: Low confidence prediction")
+            st.error("### \U0000274C Low confidence prediction")
             st.markdown(f"Confidence: {confidence:.1f}%")
         
         # Show top 3 predictions
-        with st.expander(":trophy: Top 3 Predictions"):
+        with st.expander("\U0001F4CA Top 3 Predictions"):
             top_3_idx = np.argsort(predictions[0])[-3:][::-1]
             for idx in top_3_idx:
                 class_name = CLASS_NAMES[idx]
@@ -161,14 +169,15 @@ with col2:
                 st.progress(int(prob), text=f"{class_name}: {prob:.1f}%")
     
     else:
-        st.info(":point_left: leaf image to see diagnosis")
+        st.info("\U0001F448 Upload a leaf image to see diagnosis")
 
 st.divider()
 st.markdown("""
     <div style="text-align: center; color: gray;">
         <small>
-        :leaves: PlantVillage Disease Classifier | Model Accuracy: 99.77% | 38 Classes<br>
+        \U0001F331 PlantVillage Disease Classifier | Model Accuracy: 98% | 38 Classes<br>
         Preprocessing: CLAHE in LAB space | Feature extraction: EfficientNetV2B0
         </small>
     </div>
     """, unsafe_allow_html=True)
+```
