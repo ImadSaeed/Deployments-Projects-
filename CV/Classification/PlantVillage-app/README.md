@@ -123,7 +123,7 @@ Pillow
 
 | Resource | Link |
 |----------|------|
-| 🧪 Training Code & EDA | [CV-Projects / PlantVillage](https://github.com/ImadSaeed/CV-Projects/tree/main/Classification/PlantVillage) |
+| 🧪 Training Code & EDA | [CV-Projects / PlantVillage](Classification/PlantVillage_38) |
 | 📊 Dataset | [PlantVillage Dataset](https://www.kaggle.com/datasets/emmarex/plantdisease) — 54,305 images, 38 classes |
 | 🌐 Live App | [Streamlit Cloud Deployment](https://nzzuuuhpyzpaiybgyqvtbg.streamlit.app/) |
 
