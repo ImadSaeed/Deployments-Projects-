@@ -25,7 +25,7 @@ MODEL_PATH = os.path.join(SCRIPT_DIR, "tiny_nn_final.h5")
 # ============================================
 st.set_page_config(
     page_title="Plant Disease Classifier",
-    page_icon="🌿",
+    page_icon=":herb:",
     layout="wide"
 )
 
@@ -51,7 +51,7 @@ def load_models():
 
 # ============================================
 # CLASS NAMES (38 classes from PlantVillage)
-# MUST match the order in your training data!
+# MUST match the order of my  training data!
 # ============================================
 CLASS_NAMES = [
     'Apple___Apple_scab', 'Apple___Black_rot', 'Apple___Cedar_apple_rust', 'Apple___healthy',
@@ -128,9 +128,9 @@ def preprocess_image(uploaded_file, img_size=224):
 # ============================================
 # MAIN APP UI
 # ============================================
-st.title("🌿 Plant Disease Classification")
+st.title(" :herb: Plant Disease Classification")
 st.markdown("""
-    **99.77% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
+    **98% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
     
     Upload a leaf image to identify the plant disease or confirm it's healthy.
 """)
@@ -175,13 +175,13 @@ with col2:
         
         # Display results
         if confidence > 80:
-            st.success(f"### 🎯 {predicted_class}")
+            st.success(f"### :dart: {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         elif confidence > 60:
-            st.warning(f"### ⚠️ {predicted_class}")
+            st.warning(f"### :warning: {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         else:
-            st.error("### ❌ Low confidence prediction")
+            st.error("### :x: Low confidence prediction")
             st.markdown(f"Confidence: {confidence:.1f}%")
         
         # Show top 3 predictions
@@ -193,13 +193,13 @@ with col2:
                 st.progress(int(prob), text=f"{class_name}: {prob:.1f}%")
     
     else:
-        st.info("👈 Upload a leaf image to see diagnosis")
+        st.info(" ::point_left: Upload a leaf image to see diagnosis")
 
 st.divider()
 st.markdown("""
     <div style="text-align: center; color: gray;">
         <small>
-        🌱 PlantVillage Disease Classifier | Model Accuracy: 99.77% | 38 Classes<br>
+        🌱 PlantVillage Disease Classifier | Model Accuracy: 98% | 38 Classes<br>
         Preprocessing: CLAHE in LAB space | Feature extraction: EfficientNetV2B0
         </small>
     </div>
