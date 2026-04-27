@@ -1,6 +1,9 @@
 """
 PlantVillage Disease Classifier - Streamlit App
 Uses Tiny NN trained on EfficientNetV2B0 features
+
+Training pipeline: Raw Image → CLAHE → EfficientNet preprocessing → Features (1280-dim) → Tiny NN
+This app replicates that EXACT pipeline for inference.
 """
 
 import streamlit as st
@@ -9,6 +12,7 @@ import numpy as np
 from PIL import Image
 import cv2
 import os
+from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 
 # ============================================
 # FIX: Get absolute path to model file
@@ -21,7 +25,7 @@ MODEL_PATH = os.path.join(SCRIPT_DIR, "tiny_nn_final.h5")
 # ============================================
 st.set_page_config(
     page_title="Plant Disease Classifier",
-    page_icon="\U0001F33F",  # Unicode for Herb
+    page_icon="🌿",
     layout="wide"
 )
 
@@ -32,7 +36,7 @@ st.set_page_config(
 def load_models():
     """Load EfficientNet feature extractor and Tiny NN model"""
     
-    # Load feature extractor (EfficientNetV2B0 - frozen)
+    # Load feature extractor (EfficientNetV2B0 - frozen) - MATCHES TRAINING
     feature_extractor = tf.keras.applications.EfficientNetV2B0(
         include_top=False,
         pooling='avg',  # Outputs 1280-dim features
@@ -40,13 +44,14 @@ def load_models():
     )
     feature_extractor.trainable = False
     
-    # Load your trained Tiny NN model using absolute path
+    # Load your trained Tiny NN model (trained on 1280-dim features)
     tiny_nn = tf.keras.models.load_model(MODEL_PATH)
     
     return feature_extractor, tiny_nn
 
 # ============================================
 # CLASS NAMES (38 classes from PlantVillage)
+# MUST match the order in your training data!
 # ============================================
 CLASS_NAMES = [
     'Apple___Apple_scab', 'Apple___Black_rot', 'Apple___Cedar_apple_rust', 'Apple___healthy',
@@ -65,11 +70,20 @@ CLASS_NAMES = [
 ]
 
 # ============================================
-# PREPROCESSING FUNCTION (CLAHE + Resize)
+# PREPROCESSING FUNCTION
+# EXACTLY matches training pipeline from pipelines.py:
+# apply_clahe_logic → apply_efficientnet_preprocessing
 # ============================================
 def preprocess_image(uploaded_file, img_size=224):
     """
-    Apply CLAHE preprocessing (matches training pipeline)
+    EXACT preprocessing pipeline from training:
+    1. Convert to RGB
+    2. CLAHE in LAB space (apply_clahe_logic)
+    3. Normalize to [0,1]
+    4. Resize
+    5. Denormalize to uint8 [0,255]
+    6. Apply EfficientNetV2 preprocess_input
+    7. Add batch dimension
     """
     # Read image
     image = Image.open(uploaded_file)
@@ -81,6 +95,10 @@ def preprocess_image(uploaded_file, img_size=224):
     # Convert to numpy array
     img = np.array(image)
     
+    # ===== STEP 1: CLAHE in LAB space (matches apply_clahe_logic) =====
+    # Convert to uint8 for OpenCV
+    img = img.astype(np.uint8)
+    
     # Apply CLAHE in LAB space
     lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
     l, a, b = cv2.split(lab)
@@ -89,11 +107,18 @@ def preprocess_image(uploaded_file, img_size=224):
     enhanced = cv2.merge((l_enhanced, a, b))
     img = cv2.cvtColor(enhanced, cv2.COLOR_LAB2RGB)
     
-    # Resize to 224x224
+    # Normalize to [0,1] (as apply_clahe_logic does)
+    img = img.astype('float32') / 255.0
+    
+    # ===== STEP 2: Resize =====
     img = cv2.resize(img, (img_size, img_size))
     
-    # Normalize to [0, 1]
-    img = img.astype('float32') / 255.0
+    # ===== STEP 3: EfficientNet preprocessing (matches apply_efficientnet_preprocessing) =====
+    # Convert back to uint8 (denormalize)
+    img = (img * 255).astype(np.uint8)
+    
+    # Apply EfficientNet's specific preprocessing
+    img = preprocess_input(img)
     
     # Add batch dimension
     img = np.expand_dims(img, axis=0)
@@ -103,9 +128,9 @@ def preprocess_image(uploaded_file, img_size=224):
 # ============================================
 # MAIN APP UI
 # ============================================
-st.title("\U0001F33F Plant Disease Classification")
+st.title("🌿 Plant Disease Classification")
 st.markdown("""
-    **98% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
+    **99.77% Accuracy** | Tiny Neural Network + EfficientNetV2B0 Features
     
     Upload a leaf image to identify the plant disease or confirm it's healthy.
 """)
@@ -115,7 +140,7 @@ st.divider()
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("\U0001F4E4 Upload Leaf Image")
+    st.subheader("📤 Upload Leaf Image")
     
     uploaded_file = st.file_uploader(
         "Choose an image...",
@@ -128,14 +153,14 @@ with col1:
         st.image(image, caption="Uploaded Leaf", use_container_width=True)
 
 with col2:
-    st.subheader("\U0001F52C Diagnosis Result")
+    st.subheader("🔬 Diagnosis Result")
     
     if uploaded_file is not None:
         with st.spinner("Analyzing leaf image..."):
             # Load models (cached after first load)
             feature_extractor, tiny_nn = load_models()
             
-            # Preprocess image
+            # Preprocess image (EXACT training pipeline)
             processed_img = preprocess_image(uploaded_file)
             
             # Extract 1280-dim features using EfficientNet
@@ -150,17 +175,17 @@ with col2:
         
         # Display results
         if confidence > 80:
-            st.success(f"### \U0001F3AF {predicted_class}")
+            st.success(f"### 🎯 {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         elif confidence > 60:
-            st.warning(f"### \U000026A0 {predicted_class}")
+            st.warning(f"### ⚠️ {predicted_class}")
             st.metric("Confidence", f"{confidence:.2f}%")
         else:
-            st.error("### \U0000274C Low confidence prediction")
+            st.error("### ❌ Low confidence prediction")
             st.markdown(f"Confidence: {confidence:.1f}%")
         
         # Show top 3 predictions
-        with st.expander("\U0001F4CA Top 3 Predictions"):
+        with st.expander("📊 Top 3 Predictions"):
             top_3_idx = np.argsort(predictions[0])[-3:][::-1]
             for idx in top_3_idx:
                 class_name = CLASS_NAMES[idx]
@@ -168,13 +193,13 @@ with col2:
                 st.progress(int(prob), text=f"{class_name}: {prob:.1f}%")
     
     else:
-        st.info("\U0001F448 Upload a leaf image to see diagnosis")
+        st.info("👈 Upload a leaf image to see diagnosis")
 
 st.divider()
 st.markdown("""
     <div style="text-align: center; color: gray;">
         <small>
-        \U0001F331 PlantVillage Disease Classifier | Model Accuracy: 98% | 38 Classes<br>
+        🌱 PlantVillage Disease Classifier | Model Accuracy: 99.77% | 38 Classes<br>
         Preprocessing: CLAHE in LAB space | Feature extraction: EfficientNetV2B0
         </small>
     </div>
